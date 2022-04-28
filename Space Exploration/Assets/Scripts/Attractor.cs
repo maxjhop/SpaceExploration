@@ -6,6 +6,18 @@ public class Attractor : MonoBehaviour
 {
     const float G = 667.4f;
     public Rigidbody rb;
+    public Vector3 initialVelocity;
+    public float mass;
+    
+    void Start()
+    {
+        //give it the direction you want as before;
+        rb = GetComponent<Rigidbody>();
+        rb.velocity = initialVelocity;
+        mass = rb.mass;
+        print(mass);
+        
+    }
 
     void FixedUpdate()
     {
