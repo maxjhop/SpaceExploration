@@ -1,3 +1,5 @@
+//this code has been repurposed from https://github.com/SebLague/Solar-System/tree/Episode_01
+
 using UnityEngine;
 
 [ExecuteInEditMode]
