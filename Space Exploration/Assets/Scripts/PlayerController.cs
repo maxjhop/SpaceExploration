@@ -1,80 +1,122 @@
 using System.Collections;
 using System.Collections.Generic;
-using System;
 using UnityEngine;
-using UnityEngine.UI;
-
 
 public class PlayerController : MonoBehaviour
 {
-    public CharacterController characterController;
-    public Rigidbody rb;
-    public float MovementSpeed = 10f;
-    public float Gravity = 18f;
-    public float jumpHeight = 10f;
-    public float distToGround = 1f;
-    public Transform groundCheck;
-    public LayerMask groundMask;
-    Vector3 velocity;
-    public bool isGrounded;
-    private float buttonHeld = 0f;
+
+    public LayerMask walkableMask;
+
+    public float maxAcceleration;
+    public Transform feet;
+    public float walkSpeed = 8;
+    public float runSpeed = 14;
+    public float jumpForce = 20;
+    public float vSmoothTime = 0.1f;
+    public float airSmoothTime = 0.5f;
+    public float stickToGroundForce = 8;
+
+    public bool lockCursor;
+    public float mass = 70;
+    Rigidbody rb;
+    public GameObject spaceship;
+
+    public float mouseSensitivity = 10;
+    public Vector2 pitchMinMax = new Vector2(-40, 85);
+    public float rotationSmoothTime = 0.1f;
+
+
+
+    public Vector3 targetVelocity;
+    Vector3 cameraLocalPos;
+    Vector3 smoothVelocity;
+    Vector3 smoothVRef;
+
     Attractor referenceBody;
-    //private bool isFalling;
 
+    Camera cam;
+    bool readyToFlyShip;
+    public Vector3 delta;
 
-
-    void Start()
+    void Awake()
     {
-        //wings = GetComponent<AudioSource>();
+        cam = GetComponentInChildren<Camera>();
+        cameraLocalPos = cam.transform.localPosition;
+        InitRigidbody();
+
+        if (lockCursor)
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
     }
 
+    void InitRigidbody()
+    {
+        rb = GetComponent<Rigidbody>();
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
+        rb.useGravity = false;
+        rb.isKinematic = false;
+        rb.mass = mass;
+    }
 
     void Update()
     {
-        //TimerScript.Instance.UpdateTime();
-
-        isGrounded = Physics.CheckSphere(groundCheck.position, distToGround, groundMask);
-        // player movement - forward, backward, left, right
-        float horizontal = Input.GetAxis("Horizontal") * MovementSpeed;
-        float vertical = Input.GetAxis("Vertical") * MovementSpeed;
-        Vector3 move = transform.right * horizontal + transform.forward * vertical;
-        characterController.Move(move * Time.deltaTime);
-
-        if (Input.GetButtonDown("Jump") && isGrounded)
-        {
-            buttonHeld = Time.time + .5f;
-            Debug.Log("Jump");
-            velocity.y = jumpHeight;
-            characterController.Move(velocity * Time.deltaTime);
-        }
-
-        if (Input.GetButton("Jump") && !isGrounded && velocity.y < 0)
-        {
-            if (Time.time >= buttonHeld)
-            {
-                Gravity = 4.4f;
-            }
-        }
-        else
-        {
-            Gravity = 18f;
-        }
-
-        // Gravity
-        if (isGrounded && velocity.y < 0)
-        {
-            velocity.y = 0f;
-
-        }
-
-        velocity.y -= Gravity * Time.deltaTime;
-        characterController.Move(velocity * Time.deltaTime);
-
-
+        HandleMovement();
     }
 
+    void HandleMovement()
+    {
 
-    /*void FixedUpdate()
+        // Movement
+        bool isGrounded = IsGrounded();
+        Vector3 input = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
+        float currentSpeed = Input.GetKey(KeyCode.LeftShift) ? runSpeed : walkSpeed;
+        targetVelocity = transform.TransformDirection(input.normalized) * currentSpeed;
+        smoothVelocity = Vector3.SmoothDamp(smoothVelocity, targetVelocity, ref smoothVRef, (isGrounded) ? vSmoothTime : airSmoothTime);
+
+        if (isGrounded)
+        {
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                rb.AddForce(transform.up * jumpForce, ForceMode.VelocityChange);
+                isGrounded = false;
+            }
+            else
+            {
+                // Apply small downward force to prevent player from bouncing when going down slopes
+                rb.AddForce(-transform.up * stickToGroundForce, ForceMode.VelocityChange);
+            }
+        }
+    }
+
+    bool IsGrounded()
+    {
+        // Sphere must not overlay terrain at origin otherwise no collision will be detected
+        // so rayRadius should not be larger than controller's capsule collider radius
+        const float rayRadius = .3f;
+        const float groundedRayDst = .2f;
+        bool grounded = false;
+
+        if (referenceBody)
+        {
+            var relativeVelocity = rb.velocity - (referenceBody.GetComponent<Rigidbody>()).velocity;
+            // Don't cast ray down if player is jumping up from surface
+            if (relativeVelocity.y <= jumpForce * .5f)
+            {
+                RaycastHit hit;
+                Vector3 offsetToFeet = (feet.position - transform.position);
+                Vector3 rayOrigin = rb.position + offsetToFeet + transform.up * rayRadius;
+                Vector3 rayDir = -transform.up;
+
+                grounded = Physics.SphereCast(rayOrigin, rayRadius, rayDir, out hit, groundedRayDst, walkableMask);
+            }
+        }
+
+        return grounded;
+    }
+
+    void FixedUpdate()
     {
         Attractor[] bodies = FindObjectsOfType<Attractor>();
         Vector3 strongestGravitionalPull = Vector3.zero;
@@ -100,6 +142,29 @@ public class PlayerController : MonoBehaviour
         rb.rotation = Quaternion.FromToRotation(transform.up, gravityUp) * rb.rotation;
 
         // Move
-        rb.MovePosition(rb.position + velocity * Time.fixedDeltaTime);
-    }*/
+        rb.MovePosition(rb.position + smoothVelocity * Time.fixedDeltaTime);
+    }
+
+    public void SetVelocity(Vector3 velocity)
+    {
+        rb.velocity = velocity;
+    }
+
+
+    public Camera Camera
+    {
+        get
+        {
+            return cam;
+        }
+    }
+
+    public Rigidbody Rigidbody
+    {
+        get
+        {
+            return rb;
+        }
+    }
+
 }

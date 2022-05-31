@@ -7,17 +7,21 @@ public class RocketScript : MonoBehaviour
 
     public float movementSpeed = 5.0f;
     public Rigidbody rb;
-    public float forwardSpeed = 25f, strafeSpeed = 7.5f, hoverSpeed = 5f;
+    public float forwardSpeed = 400f, strafeSpeed = 7.5f, hoverSpeed = 5f;
     private float activeForwardSpeed, activeStrafeSpeed, activeHoverSpeed;
     private float forwardAcceleration = 2.5f, strafeAcceleration = 2f, hoverAcceleration = 2f;
 
     public float lookRateSpeed = 90f;
+    public Camera camera;
     private Vector2 lookInput, screenCenter, mouseDistance;
 
     private float rollInput;
     public float rollSpeed = 90f, rollAcceleration = 3.5f;
 
-    private bool canMove = true;
+    public bool canMove = true;
+    private Vector3 _cameraOffset;
+
+    GameObject planet;
 
     // Start is called before the first frame update
     void Start()
@@ -26,6 +30,7 @@ public class RocketScript : MonoBehaviour
         screenCenter.y = Screen.height * .5f;
 
         Cursor.lockState = CursorLockMode.Confined;
+        _cameraOffset = camera.transform.position - transform.position;
         //Cursor.visible = false;
     }
 
@@ -53,6 +58,18 @@ public class RocketScript : MonoBehaviour
             transform.position += transform.up * activeForwardSpeed * Time.deltaTime;
             transform.position += (transform.right * activeStrafeSpeed * Time.deltaTime) + (transform.forward * activeHoverSpeed * Time.deltaTime);
         }
+        else
+        {
+            transform.LookAt(planet.transform, transform.up);
+            transform.Rotate(90, 0, 0);
+            if (Input.GetMouseButton(1))
+            {
+                Quaternion camTurnAngle = Quaternion.AngleAxis(Input.GetAxis("Mouse X"), Vector3.up);
+                _cameraOffset = camTurnAngle * _cameraOffset;
+                camera.transform.LookAt(this.gameObject.transform);
+                
+            }
+        }
 
         
     }
@@ -72,6 +89,7 @@ public class RocketScript : MonoBehaviour
             rb.velocity = new Vector3(0, 0, 0);
             */
             this.gameObject.transform.parent = other.gameObject.transform;
+            planet = other.gameObject;
             canMove = false;
             //transform.position = new Vector3(0, 0, 0);
         }
