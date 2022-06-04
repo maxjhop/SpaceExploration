@@ -26289,7 +26289,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1384544169
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -26306,7 +26306,7 @@ MonoBehaviour:
   timeStep: 0.01
   usePhysicsTimeStep: 0
   relativeToBody: 1
-  centralBody: {fileID: 1130330446}
+  centralBody: {fileID: 920508164}
   width: 10
   useThickLines: 0
 --- !u!4 &1384544170
